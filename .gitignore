@@ -1,0 +1,17 @@
+# Datasets, cached teacher embeddings, checkpoints, exports.
+# All far too large for git.
+data/
+out/
+*.npy
+*.parquet
+*.pt
+*.onnx
+*.onnx.data
+*.tflite
+
+# Staged HuggingFace upload, built by prepare_release.py.
+release/
+
+.venv/
+__pycache__/
+*.pyc

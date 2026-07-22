@@ -1,0 +1,7 @@
+{
+  "checkpoint": "C:\\Users\\Nate\\Documents\\2026\\BotanicalBuddy\\ml\\out\\checkpoints\\best.pt",
+  "n_images": 2000,
+  "embedding_cosine": 0.8383405208587646,
+  "top1_agree": 0.7165000438690186,
+  "top5_contain": 0.8880000710487366
+}

@@ -1,0 +1,31 @@
+# Python 3.12 or 3.13 ONLY. PyTorch has no 3.14 wheels yet, and the system
+# Python on this machine is 3.14 — see ml/README.md step 0.
+#
+# Install torch FIRST, from the CUDA 12.8 index. The RTX 5070 is Blackwell
+# (compute capability sm_120); the default PyPI wheels are built without
+# sm_120 kernels and will fail at runtime with "no kernel image is available".
+#
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+#   pip install -r requirements.txt
+
+open_clip_torch>=2.32.0
+timm>=1.0.15
+huggingface_hub>=0.30.0
+
+numpy>=2.0
+pillow>=11.0
+pandas>=2.2
+pyarrow>=18.0
+tqdm>=4.67
+
+# Export path. onnx/onnxruntime work everywhere including Windows.
+# onnxscript is not optional: current torch.onnx.export imports it eagerly via
+# the dynamo exporter, so it fails at import time without it even when you are
+# not using the new export path.
+onnx>=1.17
+onnxruntime>=1.20
+onnxscript>=0.2
+onnxconverter-common>=1.14   # fp16 conversion in s05
+
+# TFLite conversion (optional, Linux/WSL2 only — see s05 docstring).
+# ai-edge-torch>=0.3.0
