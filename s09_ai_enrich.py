@@ -50,7 +50,8 @@ SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "required": [
-        "commonNames", "family", "description", "lifecycle", "nativeStatus",
+        "commonNames", "family", "description", "lifecycle",
+        "nativeCountries", "nativeRegions", "nativeRangeNote",
         "toxicitySeverity", "toxicityDetail", "isEdible", "edibleParts",
         "edibleCautions", "benefits", "drawbacks", "careNotes", "careEase",
     ],
@@ -60,8 +61,15 @@ SCHEMA = {
         "description": {"type": "string"},
         "lifecycle": {"type": "string",
                       "enum": ["annual", "biennial", "perennial", "unknown"]},
-        "nativeStatus": {"type": "string",
-                         "enum": ["native", "introduced", "invasive", "unknown"]},
+        # Native RANGE, not a native/introduced verdict. The app compares the
+        # device's location against these lists at runtime to decide status, so
+        # the data stays location-agnostic here.
+        # ISO 3166-1 alpha-2 codes, matched against the device's country code.
+        "nativeCountries": {"type": "array", "items": {"type": "string"}},
+        # State/province English names, matched against the device's admin area.
+        "nativeRegions": {"type": "array", "items": {"type": "string"}},
+        # Short human summary of the native range, for display.
+        "nativeRangeNote": {"type": "string"},
         "toxicitySeverity": {"type": "string",
                              "enum": ["none", "mild", "moderate", "severe", "unknown"]},
         "toxicityDetail": {"type": "string"},
@@ -81,9 +89,16 @@ scientific name, return structured facts about the SPECIES (not any particular \
 specimen; you are not looking at a photo).
 
 Rules:
-- Judge nativeStatus relative to this region: {region}. If the species does not \
-occur there, use "introduced" or "invasive" as appropriate, or "unknown" if you \
-are unsure.
+- Native range, NOT a native/introduced verdict. List where the species is \
+naturally native; the app decides native-vs-introduced later by comparing the \
+user's location against these lists.
+  - nativeCountries: ISO 3166-1 alpha-2 codes (uppercase, e.g. US, CA, MX, GB, \
+FR) for every country in the native range. Empty if genuinely unknown.
+  - nativeRegions: notable native states or provinces by English name (e.g. \
+California, Ontario, Queensland), useful within large countries; empty if not \
+applicable or unknown.
+  - nativeRangeNote: a short human summary of the native range (e.g. "Eastern \
+North America", "Central and southern Europe"). Empty if unknown.
 - For toxicity and edibility, answer "unknown" rather than guessing. A wrong \
 "safe" or "edible" claim can cause real harm. Only state a toxicity severity or \
 mark a plant edible when you are confident.
@@ -126,7 +141,7 @@ def read_wikipedia_urls(facts_path: Path) -> dict[str, str]:
             for r in records if r.get("wikipediaUrl")}
 
 
-def build_request(name: str, model: str, region: str) -> dict:
+def build_request(name: str, model: str) -> dict:
     return {
         "custom_id": name.replace(" ", "_")[:64],
         "params": {
@@ -146,7 +161,7 @@ def build_request(name: str, model: str, region: str) -> dict:
             # regardless.
             "system": [{
                 "type": "text",
-                "text": SYSTEM_TEMPLATE.format(region=region),
+                "text": SYSTEM_TEMPLATE,
                 "cache_control": {"type": "ephemeral", "ttl": "1h"},
             }],
             "output_config": {"format": {"type": "json_schema", "schema": SCHEMA}},
@@ -159,8 +174,6 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--taxa", type=Path, required=True)
     ap.add_argument("--model", default="claude-opus-4-8")
-    ap.add_argument("--region",
-                    default="Southeastern United States (USDA zones 7b-8a)")
     ap.add_argument("--out", type=Path, default=Path("data/species_facts.json"))
     ap.add_argument("--curated", type=Path, default=Path("curated_safety.csv"))
     ap.add_argument("--wikipedia", type=Path,
@@ -178,17 +191,19 @@ def main() -> int:
     names = read_taxa(args.taxa)
     if args.limit:
         names = names[: args.limit]
-    print(f"{len(names):,} species | model {args.model} | region '{args.region}'")
+    print(f"{len(names):,} species | model {args.model}")
 
     client = Anthropic()
     args.out.parent.mkdir(parents=True, exist_ok=True)
 
     # --- Create or resume the batch --------------------------------------
     # Fingerprint the exact request set so a stale batch id (e.g. from a
-    # --limit smoke test) can never be resumed against a different run. This
-    # is the bug that silently resumed a 10-species batch for a 4,271 request.
+    # --limit smoke test, or an earlier schema) can never be resumed against a
+    # different run. Includes the prompt and schema, so changing the enrichment
+    # definition forces a new batch rather than resuming an old-format one.
+    definition = json.dumps(SCHEMA, sort_keys=True) + SYSTEM_TEMPLATE
     fingerprint = hashlib.sha256(
-        "\n".join([args.model, args.region, *names]).encode("utf-8")
+        "\n".join([args.model, definition, *names]).encode("utf-8")
     ).hexdigest()
 
     by_custom_id = {n.replace(" ", "_")[:64]: n for n in names}
@@ -208,7 +223,7 @@ def main() -> int:
     if batch_id is None:
         print("Creating batch ...")
         batch = client.messages.batches.create(
-            requests=[build_request(n, args.model, args.region) for n in names]
+            requests=[build_request(n, args.model) for n in names]
         )
         batch_id = batch.id
         args.batch_id_file.write_text(json.dumps({
@@ -290,8 +305,12 @@ def main() -> int:
             "family": (a.get("family") or "").strip() or None,
             "description": (a.get("description") or "").strip(),
             "lifecycle": a.get("lifecycle", "unknown"),
-            "nativeStatus": a.get("nativeStatus", "unknown"),
-            "nativeRegion": args.region,
+            # Native RANGE, for the app to compare against device location.
+            "nativeCountries": [c.strip().upper() for c in
+                                (a.get("nativeCountries") or []) if c.strip()],
+            "nativeRegions": [r.strip() for r in
+                              (a.get("nativeRegions") or []) if r.strip()],
+            "nativeRangeNote": (a.get("nativeRangeNote") or "").strip() or None,
             "toxicitySeverity": tox_sev,
             "toxicityDetail": tox_detail or None,
             "isEdible": is_edible,
