@@ -39,6 +39,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--ml-root", type=Path, required=True)
     ap.add_argument("--app-assets", type=Path, required=True)
+    ap.add_argument("--facts", type=Path, default=Path("data/species_facts.json"),
+                    help="Encyclopedia from s08. Optional but the app needs it "
+                         "to describe anything it identifies.")
     args = ap.parse_args()
 
     export = args.ml_root / "out" / "export"
@@ -99,6 +102,30 @@ def main() -> int:
     print(f"  taxa_labels.json     {labels_dst.stat().st_size / 1e6:>6.1f} MB "
           f"({len(labels):,} taxa)")
 
+    # --- Species facts ----------------------------------------------------
+    # Every species the model can name, described ahead of time. This is what
+    # removes the need for a per-identification cloud call: the output space is
+    # closed, so every possible answer was enriched at build time.
+    facts_count = 0
+    if args.facts.exists():
+        facts = json.loads(args.facts.read_text(encoding="utf-8"))
+        facts_count = len(facts)
+        known = {r["scientificName"] for r in facts}
+        missing = [t["scientific"] for t in labels if t["scientific"] not in known]
+        if missing:
+            print(f"  WARNING: {len(missing)} taxa have no facts record, "
+                  f"e.g. {missing[:3]}", file=sys.stderr)
+        facts_dst = args.app_assets / "species_facts.json"
+        facts_dst.write_text(json.dumps(facts, ensure_ascii=False),
+                             encoding="utf-8")
+        described = sum(1 for r in facts if (r.get("description") or "").strip())
+        print(f"  species_facts.json   {facts_dst.stat().st_size / 1e6:>6.1f} MB "
+              f"({facts_count:,} taxa, {described:,} described)")
+    else:
+        print(f"  species_facts.json   MISSING at {args.facts}. Run s08 first, "
+              f"or the app will identify plants it cannot describe.",
+              file=sys.stderr)
+
     # --- Manifest ---------------------------------------------------------
     # The app asserts these at load time. A silent dimension mismatch between
     # the model and the table would otherwise produce plausible-looking
@@ -113,6 +140,7 @@ def main() -> int:
         "tableSha256": sha256_of(table_dst),
         "top1Agreement": report.get("top1_agree"),
         "top5Contain": report.get("top5_contain"),
+        "factsCount": facts_count,
     }
     (args.app_assets / "model_manifest.json").write_text(
         json.dumps(manifest, indent=2), encoding="utf-8")

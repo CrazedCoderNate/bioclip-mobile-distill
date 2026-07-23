@@ -1,0 +1,48 @@
+scientificName,toxicitySeverity,toxicityDetail,isEdible,edibleParts
+# Hand-verified toxicity and edibility. Read by s08_species_facts.py.
+#
+# There is no open dataset covering toxicity for thousands of plant species,
+# so this file is deliberately small, human-maintained, and high-confidence
+# rather than automatically generated. A species absent from this file renders
+# as "Unknown" in the app, which is correct: nobody has told us about it. That
+# is NOT the same as "safe", and nothing downstream may treat it as such.
+#
+# toxicitySeverity: none | mild | moderate | severe
+# isEdible: true | false | (blank for unknown)
+#
+# Sources to verify against before adding a row:
+#   FDA Poisonous Plant Database
+#   Cornell Department of Animal Science plant poisoning pages
+#   NCPC / regional poison control listings
+#
+# Widely encountered toxic species below. Extend as you verify more.
+Toxicodendron radicans,severe,"Urushiol in all parts causes severe allergic contact dermatitis. Do not touch or burn.",false,
+Toxicodendron rydbergii,severe,"Urushiol in all parts causes severe allergic contact dermatitis. Do not touch or burn.",false,
+Toxicodendron diversilobum,severe,"Urushiol in all parts causes severe allergic contact dermatitis. Do not touch or burn.",false,
+Toxicodendron vernix,severe,"Urushiol causes severe contact dermatitis. Among the most irritant plants in North America.",false,
+Conium maculatum,severe,"Coniine in all parts is lethal in small amounts. Resembles wild carrot and parsley.",false,
+Cicuta maculata,severe,"Cicutoxin. Among the most violently toxic plants in North America; a small amount of root can be fatal.",false,
+Nerium oleander,severe,"Cardiac glycosides in all parts. Ingestion can cause fatal arrhythmia; smoke from burning is toxic.",false,
+Digitalis purpurea,severe,"Cardiac glycosides in all parts. Ingestion causes heart rhythm disturbance and can be fatal.",false,
+Atropa belladonna,severe,"Tropane alkaloids. Berries are attractive and lethal, especially to children.",false,
+Ricinus communis,severe,"Ricin in seeds. A few chewed seeds can be fatal.",false,
+Aconitum napellus,severe,"Aconitine in all parts, absorbed through skin. Handle with gloves.",false,
+Datura stramonium,severe,"Tropane alkaloids in all parts. Causes delirium; ingestion is frequently fatal.",false,
+Phytolacca americana,moderate,"Roots and mature stems and berries are toxic raw. Young shoots are eaten only after repeated boiling in changed water.",,
+Hedera helix,moderate,"Berries and leaves cause gastrointestinal upset; sap causes contact dermatitis.",false,
+Ilex opaca,moderate,"Berries cause vomiting and diarrhoea, particularly in children.",false,
+Wisteria frutescens,moderate,"Seeds and pods cause severe gastrointestinal symptoms.",false,
+Robinia pseudoacacia,moderate,"Bark, leaves, and seeds contain toxalbumins. Flowers are the only part traditionally eaten.",,flowers
+Sambucus nigra,mild,"Raw berries, leaves, and stems contain cyanogenic glycosides. Berries are edible cooked.",true,cooked berries
+Prunus serotina,mild,"Leaves, twigs, and seeds contain cyanogenic glycosides. Flesh of ripe fruit is edible.",true,ripe fruit flesh
+Urtica dioica,mild,"Stinging hairs cause a painful transient rash. Cooking destroys the sting.",true,cooked leaves and shoots
+Rubus idaeus,none,,true,fruit
+Rubus occidentalis,none,,true,fruit
+Fragaria virginiana,none,,true,fruit
+Vaccinium corymbosum,none,,true,fruit
+Vaccinium angustifolium,none,,true,fruit
+Morus rubra,none,,true,ripe fruit
+Asimina triloba,none,"Skin and seeds should not be eaten; the flesh of ripe fruit is edible.",true,ripe fruit flesh
+Taraxacum officinale,none,,true,leaves flowers roots
+Allium tricoccum,none,,true,leaves and bulbs
+Mentha arvensis,none,,true,leaves
