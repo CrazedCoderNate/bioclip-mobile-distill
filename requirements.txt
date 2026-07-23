@@ -18,6 +18,10 @@ pandas>=2.2
 pyarrow>=18.0
 tqdm>=4.67
 
+# s08 fetches from Wikidata/Wikipedia over plain urllib (no extra dep).
+# s09 pre-generates the rich write-ups with Claude via the Batch API.
+anthropic>=0.69
+
 # Export path. onnx/onnxruntime work everywhere including Windows.
 # onnxscript is not optional: current torch.onnx.export imports it eagerly via
 # the dynamo exporter, so it fails at import time without it even when you are
