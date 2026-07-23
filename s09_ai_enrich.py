@@ -134,7 +134,20 @@ def build_request(name: str, model: str, region: str) -> dict:
             # Factual extraction; thinking would multiply cost across 4,271
             # calls for little gain, and the JSON is schema-constrained anyway.
             "thinking": {"type": "disabled"},
-            "system": SYSTEM_TEMPLATE.format(region=region),
+            # The system prompt is byte-identical across every request, so cache
+            # it: the first request pays the write, the rest read it at ~0.1x.
+            # This is the same input saving that batching several species into
+            # one prompt would give, without the partial-failure and truncation
+            # risk of packing many write-ups into one response. A 1h TTL keeps
+            # it warm across the whole batch (batch caching is best-effort; the
+            # first wave of concurrent requests may still miss). The structured
+            # output schema has its own 24h compile cache, so it is amortized
+            # regardless.
+            "system": [{
+                "type": "text",
+                "text": SYSTEM_TEMPLATE.format(region=region),
+                "cache_control": {"type": "ephemeral", "ttl": "1h"},
+            }],
             "output_config": {"format": {"type": "json_schema", "schema": SCHEMA}},
             "messages": [{"role": "user", "content": f"Species: {name}"}],
         },
