@@ -12,6 +12,11 @@ out/
 # Staged HuggingFace upload, built by prepare_release.py.
 release/
 
+# Prefetched encyclopedia, built by s08 from Wikidata/Wikipedia. Regenerable,
+# and this repo ships code, not derived data. The curated_safety.csv seed that
+# feeds into it IS tracked; the fetched result is not.
+species_facts.json
+
 .venv/
 __pycache__/
 *.pyc
