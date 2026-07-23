@@ -21,10 +21,12 @@ batch rather than paying for a second one. Curated safety rows
 (curated_safety.csv) override the model's toxicity/edibility, and Wikipedia URLs
 from s08 are merged in if present.
 
-COST (rough, one-time): ~4,271 requests, ~400 in / ~700 out tokens each, on
-claude-opus-4-8 at $5/$25 per M with the Batch API's 50% discount ≈ $40-45.
-Pass --model claude-sonnet-5 to roughly halve that at some quality cost; the
-model card's toxicity warning matters most for the long tail of obscure species.
+COST (measured, one-time): the full 4,271-species run on claude-opus-4-8 with
+the Batch API's 50% discount came to ~$56 (the rich write-ups run larger than a
+first estimate suggests, so budget for that, not ~$30). --model claude-sonnet-5
+roughly halves it and claude-haiku-4-5 roughly quarters it; both are fine for
+the descriptive fields, and curated_safety.csv still governs the safety-critical
+toxicity regardless of model.
 
 SAFETY: the model is told to answer "unknown" rather than guess on toxicity and
 edibility, and curated_safety.csv wins where it has an entry. Absent data must
