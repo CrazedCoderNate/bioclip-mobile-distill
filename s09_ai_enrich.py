@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import sys
 import time
@@ -183,18 +184,37 @@ def main() -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
 
     # --- Create or resume the batch --------------------------------------
+    # Fingerprint the exact request set so a stale batch id (e.g. from a
+    # --limit smoke test) can never be resumed against a different run. This
+    # is the bug that silently resumed a 10-species batch for a 4,271 request.
+    fingerprint = hashlib.sha256(
+        "\n".join([args.model, args.region, *names]).encode("utf-8")
+    ).hexdigest()
+
     by_custom_id = {n.replace(" ", "_")[:64]: n for n in names}
+    batch_id = None
     if args.batch_id_file.exists():
-        batch_id = args.batch_id_file.read_text().strip()
-        print(f"Resuming batch {batch_id}")
-    else:
+        try:
+            saved = json.loads(args.batch_id_file.read_text())
+        except json.JSONDecodeError:
+            saved = {}  # pre-fingerprint file; treat as stale
+        if saved.get("fingerprint") == fingerprint:
+            batch_id = saved["batch_id"]
+            print(f"Resuming batch {batch_id} ({saved.get('n')} species)")
+        else:
+            print(f"Ignoring stale batch id (was {saved.get('n', '?')} species, "
+                  f"now {len(names)}); creating a new batch.")
+
+    if batch_id is None:
         print("Creating batch ...")
         batch = client.messages.batches.create(
             requests=[build_request(n, args.model, args.region) for n in names]
         )
         batch_id = batch.id
-        args.batch_id_file.write_text(batch_id)
-        print(f"  batch {batch_id} ({batch.processing_status})")
+        args.batch_id_file.write_text(json.dumps({
+            "batch_id": batch_id, "fingerprint": fingerprint, "n": len(names),
+        }))
+        print(f"  batch {batch_id} ({batch.processing_status}, {len(names)} species)")
 
     # --- Poll -------------------------------------------------------------
     while True:
