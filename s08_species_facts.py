@@ -201,7 +201,9 @@ def read_curated_safety(path: Path) -> dict[str, dict]:
     with path.open(encoding="utf-8", newline="") as f:
         for row in csv.DictReader(f):
             name = (row.get("scientificName") or "").strip()
-            if not name:
+            # Skip blanks and the '#' comment rows, which csv.DictReader would
+            # otherwise hand back as a species literally named "# ...".
+            if not name or name.startswith("#"):
                 continue
             edible_raw = (row.get("isEdible") or "").strip().lower()
             out[name] = {
